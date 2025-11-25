@@ -5,29 +5,6 @@ import 'package:calculator_cli/calculator_state.dart';
 import 'package:test/test.dart';
 
 void main() {
-  /* TODO write tests for commands
-   *
-   * - Enter
-   *   - a new stack with given value at the end and old stack in history
-   * - Clear
-   *   - an empty state
-   * - Undo
-   *   - previous state restored from history
-   * - Add
-   *   - stack with the last two values added, and history so that the old state can be restored
-   *   - does nothing when stack length is less than 2
-   * - Subtract
-   *   - stack with the last two values subtracted, and history so that old state
-   *     can be restored
-   *   - does nothing when stack length is less than 2
-   * - Multiply
-   *   - stack with the last two values multiplied, and history so that old state
-   *   - does nothing when stack length is less than 2
-   * - Divide
-   *   - stack with the last two values divided, and history so that old state
-   *   - does nothing when stack length is less than 2
-  */
-
   test('EnterCommand returns a new list with the given number applied', () {
     final List<num> origStack = [1, 2];
     var state = CalculatorState(stack: origStack, history: [origStack]);
@@ -60,42 +37,213 @@ void main() {
     expect(newState.stack, isNot(newStack));
     expect(newState.history, isEmpty);
   });
+  //#region AddCommand
+  group('AddCommand', () {
+    test('returns sum of the last to operands in the stack', () {
+      final origStack = [1, 2];
+      CalculatorState state =
+          CalculatorState(stack: origStack, history: [origStack]);
+      final newStack = Add().execute(state);
 
-  test('AddCommand returns sum of the last to operands in the stack', () {
-    final origStack = [1, 2];
-    final newStack = Add().operate(origStack[0], origStack[1]);
+      expect(newStack.stack, equals([3]));
+      expect(newStack.history, isNot(equals(origStack)));
+    });
 
-    expect(newStack, equals(3));
-    expect(newStack, isNot(equals(origStack)));
+    test(
+        'returns sum of the last two operands in the stack and not all of them',
+        () {
+      CalculatorState state = CalculatorState(stack: [
+        1,
+        2,
+        3,
+        4
+      ], history: [
+        [1],
+        [1, 2],
+        [1, 2, 3],
+        [1, 2, 3, 4]
+      ]);
+      final newStack = Add().execute(state);
+
+      expect(newStack.stack, equals([1, 2, 7]));
+      expect(
+          newStack.history,
+          equals([
+            [1],
+            [1, 2],
+            [1, 2, 3],
+            [1, 2, 3, 4],
+            [1, 2, 3, 4]
+          ]));
+    });
+
+    test('do nothing, because the length of the list is the less than 2', () {
+      CalculatorState state = CalculatorState(stack: [
+        1
+      ], history: [
+        [1]
+      ]);
+      final newStack = Add().execute(state);
+
+      expect(newStack.stack, equals([1]));
+      expect(
+          newStack.history,
+          equals([
+            [1]
+          ]));
+    });
+  });
+//#endregion
+
+  //#region SubstractCommand
+  group('SubstractCommand', () {
+    test('returns substraction of the last two operands in the stack', () {
+      var state = CalculatorState(stack: [
+        1,
+        2
+      ], history: [
+        [1],
+        [1, 2]
+      ]);
+      final newState = Subtract().execute(state);
+
+      expect(newState.stack, equals([-1]));
+      expect(newState.stack, isNot([1, 2]));
+      expect(newState.history.last, equals([1, 2]));
+    });
+
+    test(
+        'returns substraction of the last two operands in the stack and not all of them',
+        () {
+      var state = CalculatorState(stack: [
+        1,
+        2,
+        4,
+        3
+      ], history: [
+        [1],
+        [1, 2],
+        [1, 2, 4],
+      ]);
+      final newState = Subtract().execute(state);
+
+      expect(newState.stack, equals([1, 2, 1]));
+      expect(newState.history.last, equals([1, 2, 4, 3]));
+    });
+
+    test('do nothing, because the length of the list is the less than 2', () {
+      CalculatorState state = CalculatorState(stack: [
+        1
+      ], history: [
+        [1]
+      ]);
+      final newState = Subtract().execute(state);
+
+      expect(newState, equals(state));
+    });
+  });
+  //#endregion
+
+  //#region MultiplyCommand
+  group('MultiplyCommand', () {
+    test('returns the multiplication of the last two operands in the stack',
+        () {
+      CalculatorState state = CalculatorState(stack: [
+        1,
+        2
+      ], history: [
+        [1]
+      ]);
+      final newStack = Multiply().execute(state);
+
+      expect(newStack.stack, equals([2]));
+      expect(newStack.history.last, equals([1, 2]));
+    });
+
+    test(
+        'returns the multiplication of the last two operands in the stack and not all of them',
+        () {
+      CalculatorState state = CalculatorState(stack: [
+        1,
+        2,
+        3,
+        4
+      ], history: [
+        [1],
+        [1, 2],
+        [1, 2, 3]
+      ]);
+      final newStack = Multiply().execute(state);
+
+      expect(newStack.stack, equals([1, 2, 12]));
+      expect(newStack.history.last, equals([1, 2, 3, 4]));
+    });
+
+    test('do nothing, due not enough elements in the stack', () {
+      CalculatorState state = CalculatorState(stack: [1], history: []);
+      final newStack = Multiply().execute(state);
+
+      expect(newStack.stack, equals([1]));
+      expect(newStack.history, isEmpty);
+    });
+  });
+  //#endregion
+
+  //#region DivideCommand
+
+  group('DivideCommand', () {
+    test('returns the divided value of the last to operands in the stack', () {
+      // Arrange
+      var state = CalculatorState(stack: [
+        10,
+        2
+      ], history: [
+        [10],
+      ]);
+
+      // Act
+      final newStack = Divide().execute(state);
+
+      // Assert
+      expect(newStack.stack, equals([5]));
+      expect(newStack.history.last, equals([10, 2]));
+    });
+
+    test(
+        'returns the divided value of the last to operands in the stack and not all of them',
+        () {
+      // Arrange
+      var state = CalculatorState(stack: [
+        10,
+        2,
+        12,
+        3
+      ], history: [
+        [10],
+        [10, 2],
+        [10, 2, 12, 3]
+      ]);
+
+      // Act
+      final newStack = Divide().execute(state);
+
+      // Assert
+      expect(newStack.stack, equals([10, 2, 4]));
+      expect(newStack.history.last, equals([10, 2, 12, 3]));
+    });
+
+    test('do nothing, due to not enough elements in the list', () {
+      // Arrange
+      var state = CalculatorState(stack: [10], history: []);
+
+      // Act
+      final newStack = Divide().execute(state);
+
+      // Assert
+      expect(newStack.stack, equals([10]));
+      expect(newStack.history, isEmpty);
+    });
   });
 
-  test(
-      'SubstractCommand returns the substraction of the last to operands in the stack',
-      () {
-    final origStack = [1, 2];
-    final newStack = Subtract().operate(origStack[0], origStack[1]);
-
-    expect(newStack, equals(-1));
-    expect(newStack, isNot(equals(origStack)));
-  });
-
-  test(
-      'MultiplyCommand returns the multiplication of the last to operands in the stack',
-      () {
-    final origStack = [1, 2];
-    final newStack = Multiply().operate(origStack[0], origStack[1]);
-
-    expect(newStack, equals(2));
-    expect(newStack, isNot(equals(origStack)));
-  });
-
-  test(
-      'DivideCommand returns the divided value of the last to operands in the stack',
-      () {
-    final origStack = [10, 2];
-    final newStack = Divide().operate(origStack[0], origStack[1]);
-
-    expect(newStack, equals(5));
-    expect(newStack, isNot(equals(origStack)));
-  });
+  //#endregion
 }
